@@ -8,6 +8,8 @@ interface Props {
   settings: GameSettings;
   stats: Stats;
   log: LogEntry[];
+  /** 'settings' opens directly to settings and Back closes (used from Start). */
+  variant?: 'pause' | 'settings';
   onResume: () => void;
   onRestart: () => void;
   onQuit: () => void;
@@ -28,8 +30,9 @@ function Toggle({ label, on, onClick }: { label: string; on: boolean; onClick: (
 
 const QUALITIES: GraphicsQuality[] = ['low', 'medium', 'high'];
 
-export default function PauseMenu({ settings, stats, log, onResume, onRestart, onQuit, onChange, onReset }: Props) {
-  const [view, setView] = useState<'main' | 'settings' | 'stats'>('main');
+export default function PauseMenu({ settings, stats, log, variant = 'pause', onResume, onRestart, onQuit, onChange, onReset }: Props) {
+  const settingsOnly = variant === 'settings';
+  const [view, setView] = useState<'main' | 'settings' | 'stats'>(settingsOnly ? 'settings' : 'main');
   const [confirmReset, setConfirmReset] = useState(false);
   const [confirmRestart, setConfirmRestart] = useState(false);
   const set = (patch: Partial<GameSettings>) => onChange({ ...settings, ...patch });
@@ -110,6 +113,7 @@ export default function PauseMenu({ settings, stats, log, onResume, onRestart, o
               <Toggle label="🔊 Sound Effects" on={settings.sfx} onClick={() => set({ sfx: !settings.sfx })} />
               <Toggle label="🎞️ Reduced Motion" on={settings.reducedMotion} onClick={() => set({ reducedMotion: !settings.reducedMotion })} />
               <Toggle label="👁️ Show Effect Chips" on={settings.showPreviews} onClick={() => set({ showPreviews: !settings.showPreviews })} />
+              {/* showPreviews drives the chip row in the decision panel */}
 
               {!confirmReset ? (
                 <button onClick={() => setConfirmReset(true)} className="w-full mt-1 py-2.5 rounded-xl bg-red-500/15 border border-red-500/30 text-red-300 text-sm font-semibold hover:bg-red-500/25 transition">Reset All Progress</button>
@@ -123,7 +127,7 @@ export default function PauseMenu({ settings, stats, log, onResume, onRestart, o
                 </div>
               )}
             </div>
-            <button onClick={() => setView('main')} className="w-full mt-4 py-2.5 rounded-xl bg-white/8 border border-white/10 font-semibold hover:bg-white/12 transition">← Back</button>
+            <button onClick={() => (settingsOnly ? onResume() : setView('main'))} className="w-full mt-4 py-2.5 rounded-xl bg-white/8 border border-white/10 font-semibold hover:bg-white/12 transition">{settingsOnly ? 'Close' : '← Back'}</button>
           </>
         )}
       </motion.div>

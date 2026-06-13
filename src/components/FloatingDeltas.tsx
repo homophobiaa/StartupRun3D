@@ -9,7 +9,7 @@ export interface FloatBatch {
 /** CSS-animated floating stat changes near the center of the screen. */
 export default function FloatingDeltas({ batches }: { batches: FloatBatch[] }) {
   return (
-    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+    <div className="absolute top-28 left-0 right-0 flex items-start justify-center pointer-events-none z-20">
       {batches.map((b) => (
         <div key={b.id} className="absolute flex flex-col items-center gap-1" style={{ animation: 'floatUp 1.4s ease-out forwards' }}>
           {b.deltas.map((d, i) => {

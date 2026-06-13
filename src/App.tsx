@@ -6,9 +6,10 @@ import EndScreen from './components/EndScreen';
 import UpgradeScreen from './components/UpgradeScreen';
 import PauseMenu from './components/PauseMenu';
 import EventToast from './components/EventToast';
-import ChoiceLog, { type LogEntry } from './components/ChoiceLog';
+import type { LogEntry } from './components/ChoiceLog';
 import FloatingDeltas, { type FloatBatch } from './components/FloatingDeltas';
 import SelectedPreview from './components/SelectedPreview';
+import ResultToast, { type ResultData } from './components/ResultToast';
 import { initialStats, applyDeltas } from './game/logic';
 import { getLevel } from './game/data';
 import { EVENTS } from './game/events';
@@ -24,6 +25,7 @@ import {
   UPGRADE_MAP,
 } from './game/progression';
 import { initAudio, setSfxEnabled, sfx } from './game/audio';
+import { AUTO_CONFIRM_MS } from './components/constants';
 import type {
   GamePhase,
   Stats,
@@ -45,10 +47,11 @@ export default function App() {
   const [stats, setStats] = useState<Stats>(() => initialStats(computeModifiers(progress.upgrades)));
   const [currentRow, setCurrentRow] = useState(0);
   const [selectedLane, setSelectedLane] = useState(1);
-  const [nearRow, setNearRow] = useState<number | null>(null);
+  const [decidingRow, setDecidingRow] = useState<number | null>(null);
   const [chosenLanes, setChosenLanes] = useState<number[]>([]);
   const [log, setLog] = useState<LogEntry[]>([]);
   const [floats, setFloats] = useState<FloatBatch[]>([]);
+  const [result, setResult] = useState<ResultData | null>(null);
   const [activeEvent, setActiveEvent] = useState<GameEvent | null>(null);
   const [ending, setEnding] = useState<Ending | null>(null);
   const [reward, setReward] = useState<RunReward | null>(null);
@@ -56,6 +59,7 @@ export default function App() {
   const [flash, setFlash] = useState<'bad' | 'good' | null>(null);
   const [shake, setShake] = useState(false);
   const [paused, setPaused] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const level = useMemo(() => getLevel(playLevel), [playLevel]);
   const modifiers = useMemo(() => computeModifiers(progress.upgrades), [progress.upgrades]);
@@ -63,14 +67,18 @@ export default function App() {
   const settings = progress.settings;
 
   const laneRef = useRef(1);
+  const commitRef = useRef(-1);
   const statsRef = useRef(stats);
   statsRef.current = stats;
   const modRef = useRef(modifiers);
   modRef.current = modifiers;
   const scalingRef = useRef(level.scaling);
   scalingRef.current = level.scaling;
+  const decidingRef = useRef<number | null>(null);
+  decidingRef.current = decidingRow;
   const firedEvents = useRef<Set<string>>(new Set());
   const floatId = useRef(0);
+  const resultId = useRef(0);
   const moveAtRef = useRef(0);
 
   useEffect(() => saveProgress(progress), [progress]);
@@ -80,7 +88,7 @@ export default function App() {
     (dir: -1 | 1) => {
       if (phase !== 'playing' || paused) return;
       const now = performance.now();
-      if (now - moveAtRef.current < 90) return; // debounce accidental double-moves
+      if (now - moveAtRef.current < 90) return;
       const target = Math.max(0, Math.min(2, laneRef.current + dir));
       if (target === laneRef.current) return;
       moveAtRef.current = now;
@@ -91,13 +99,26 @@ export default function App() {
     [phase, paused]
   );
 
-  // keyboard: WASD + arrows, Esc to pause; ignore while typing
+  const commit = useCallback(() => {
+    if (decidingRef.current === null) return;
+    commitRef.current = decidingRef.current;
+  }, []);
+
+  // auto-commit after a calm window (paused stops the clock)
+  useEffect(() => {
+    if (decidingRow === null || paused) return;
+    const t = setTimeout(commit, AUTO_CONFIRM_MS);
+    return () => clearTimeout(t);
+  }, [decidingRow, paused, commit]);
+
+  // keyboard: WASD + arrows, Space/Enter commit, Esc pause; ignore while typing
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const el = document.activeElement as HTMLElement | null;
       if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
       if (e.key === 'Escape') {
-        if (phase === 'playing') setPaused((p) => !p);
+        if (settingsOpen) setSettingsOpen(false);
+        else if (phase === 'playing') setPaused((p) => !p);
         return;
       }
       if (phase !== 'playing' || paused) return;
@@ -107,11 +128,14 @@ export default function App() {
       } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
         e.preventDefault();
         moveLane(1);
+      } else if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        commit();
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [phase, paused, moveLane]);
+  }, [phase, paused, settingsOpen, moveLane, commit]);
 
   // swipe
   const touchStart = useRef<number | null>(null);
@@ -131,17 +155,20 @@ export default function App() {
     setStats(initialStats(modRef.current));
     setCurrentRow(0);
     setSelectedLane(1);
-    setNearRow(null);
+    setDecidingRow(null);
     setChosenLanes([]);
     setLog([]);
     setFloats([]);
+    setResult(null);
     setActiveEvent(null);
     setEnding(null);
     setReward(null);
     setIsBest(false);
     firedEvents.current = new Set();
     laneRef.current = 1;
+    commitRef.current = -1;
     setPaused(false);
+    setSettingsOpen(false);
     setRunId((r) => r + 1);
     setPhase('playing');
   }, []);
@@ -171,6 +198,9 @@ export default function App() {
       setStats(next);
       pushFloat(applied);
       setLog((l) => [...l, { label: `${choice.icon} ${choice.label}`, tone: choice.tone }]);
+      const rid = resultId.current++;
+      setResult({ id: rid, label: choice.label, deltas: applied });
+      setTimeout(() => setResult((r) => (r && r.id === rid ? null : r)), 2200);
       setChosenLanes((c) => {
         const copy = [...c];
         copy[rowIndex] = lane;
@@ -201,12 +231,12 @@ export default function App() {
 
   const handleFinish = useCallback(() => {
     const finalStats = statsRef.current;
-    const result = resolveEnding(finalStats);
+    const res = resolveEnding(finalStats);
     const rw = computeReward(finalStats, playLevel);
-    setEnding(result);
+    setEnding(res);
     setReward(rw);
     setIsBest(rw.valuation > progress.bestValuation);
-    setProgress((p) => recordRun(p, rw, result, playLevel));
+    setProgress((p) => recordRun(p, rw, res, playLevel));
     sfx.finish();
     setPhase('end');
   }, [playLevel, progress.bestValuation]);
@@ -227,30 +257,28 @@ export default function App() {
     const fresh = resetProgress();
     setProgress(fresh);
     setPaused(false);
+    setSettingsOpen(false);
     setPhase('start');
   };
 
-  const previewRow = nearRow !== null && !paused ? level.rows[nearRow] : null;
+  const previewRow = decidingRow !== null && !paused ? level.rows[decidingRow] : null;
 
   return (
-    <div
-      className={`relative w-full h-full overflow-hidden ${shake ? 'shake' : ''}`}
-      onTouchStart={onTouchStart}
-      onTouchEnd={onTouchEnd}
-    >
+    <div className={`relative w-full h-full overflow-hidden ${shake ? 'shake' : ''}`} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       {(phase === 'playing' || phase === 'end') && (
         <GameCanvas
           runId={runId}
           rows={level.rows}
           laneRef={laneRef}
+          commitRef={commitRef}
           currentRow={currentRow}
+          selectedLane={selectedLane}
           chosenLanes={chosenLanes}
           paused={paused || phase === 'end'}
           quality={settings.quality}
           reducedMotion={settings.reducedMotion}
-          showPreviews={settings.showPreviews}
           onResolveRow={handleResolveRow}
-          onNear={setNearRow}
+          onDecide={setDecidingRow}
           onFinish={handleFinish}
         />
       )}
@@ -258,10 +286,10 @@ export default function App() {
       {phase === 'playing' && (
         <>
           <HUD stats={stats} levelName={level.name} levelIndex={level.index} currentRow={currentRow} totalRows={totalRows} onPause={() => setPaused(true)} />
-          <ChoiceLog entries={log} />
           <FloatingDeltas batches={floats} />
+          <ResultToast result={result} />
           <EventToast event={activeEvent} />
-          <SelectedPreview row={previewRow} lane={selectedLane} />
+          <SelectedPreview row={previewRow} rowIndex={decidingRow ?? -1} lane={selectedLane} reducedMotion={settings.reducedMotion} showChips={settings.showPreviews} onConfirm={commit} />
 
           {/* mobile tap zones */}
           {!paused && (
@@ -296,8 +324,22 @@ export default function App() {
         />
       )}
 
+      {settingsOpen && (
+        <PauseMenu
+          settings={settings}
+          stats={stats}
+          log={log}
+          variant="settings"
+          onResume={() => setSettingsOpen(false)}
+          onRestart={() => {}}
+          onQuit={() => setSettingsOpen(false)}
+          onChange={changeSettings}
+          onReset={doReset}
+        />
+      )}
+
       {phase === 'start' && (
-        <StartScreen progress={progress} onStart={() => startRun(progress.level)} onUpgrades={() => setPhase('upgrades')} />
+        <StartScreen progress={progress} onStart={() => startRun(progress.level)} onUpgrades={() => setPhase('upgrades')} onSettings={() => setSettingsOpen(true)} />
       )}
 
       {phase === 'upgrades' && (

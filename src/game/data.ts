@@ -1,4 +1,4 @@
-import type { LevelConfig, StatDelta, StatKey, GateChoice, DecisionRow, LevelScaling } from './types';
+import type { LevelConfig, StatDelta, StatKey, GateChoice, DecisionRow, LevelScaling, PortalCategory } from './types';
 
 const d = (stat: StatKey, amount: number): StatDelta => ({ stat, amount });
 
@@ -8,21 +8,37 @@ interface GateOpts {
   tone: GateChoice['tone'];
   detail: string;
   risk?: boolean;
+  /** Force a portal category; otherwise derived from effects. */
+  cat?: PortalCategory;
   /** Static deltas, OR provide `effect` for conditional logic. */
   deltas?: StatDelta[];
   effect?: GateChoice['effect'];
-  /** Up to 2 chips shown on the gate (defaults to first 2 of `deltas`). */
+  /** Effect chips shown in the panel (defaults to first 2 of `deltas`). */
   preview?: StatDelta[];
 }
 
+/** Pick a portal identity from the choice's tone + dominant effect. */
+function deriveCategory(tone: GateChoice['tone'], chips: StatDelta[]): PortalCategory {
+  if (tone === 'bad') return 'danger';
+  if (chips.some((c) => c.stat === 'legalRisk' && c.amount > 0)) return 'legal';
+  const ranked = [...chips].sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount));
+  const top = ranked[0]?.stat;
+  if (top === 'cash') return 'finance';
+  if (top === 'users') return 'marketing';
+  if (top === 'product' || top === 'skill') return 'product';
+  return tone === 'risky' ? 'growth' : 'strategic';
+}
+
 function gate(o: GateOpts): GateChoice {
+  const preview = (o.preview ?? o.deltas ?? []).slice(0, 3);
   return {
     label: o.label,
     icon: o.icon,
     tone: o.tone,
+    category: o.cat ?? deriveCategory(o.tone, preview),
     detail: o.detail,
     risk: o.risk ?? o.tone === 'risky',
-    preview: (o.preview ?? o.deltas ?? []).slice(0, 2),
+    preview,
     effect: o.effect ?? (() => o.deltas ?? []),
   };
 }

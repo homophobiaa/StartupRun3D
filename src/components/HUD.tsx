@@ -10,13 +10,18 @@ interface Props {
   onPause: () => void;
 }
 
-function Pill({ icon, label, value, danger }: { icon: string; label: string; value: string; danger?: boolean }) {
+function Pill({ icon, label, value, danger, bar }: { icon: string; label: string; value: string; danger?: boolean; bar?: number }) {
   return (
     <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-black/45 border border-white/10 backdrop-blur-sm">
       <span className="text-base leading-none">{icon}</span>
       <div className="leading-none">
         <div className="text-[9px] uppercase tracking-wide text-white/45">{label}</div>
         <div className={`text-sm font-extrabold ${danger ? 'text-red-300' : 'text-white'}`}>{value}</div>
+        {bar !== undefined && (
+          <div className="w-12 h-1 mt-0.5 rounded bg-white/10 overflow-hidden">
+            <div className={`h-full rounded ${danger ? 'bg-red-400' : 'bg-gradient-to-r from-cyan-400 to-emerald-400'}`} style={{ width: `${Math.max(0, Math.min(100, bar))}%` }} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -47,8 +52,8 @@ export default function HUD({ stats, levelName, levelIndex, currentRow, totalRow
 
         {/* right: product + stress + pause */}
         <div className="flex gap-1.5 items-start">
-          <Pill icon="🛠️" label="Product" value={`${stats.product}`} />
-          <Pill icon="🔥" label="Stress" value={`${stats.stress}`} danger={stats.stress > 60} />
+          <Pill icon="🛠️" label="Product" value={`${stats.product}`} bar={stats.product} />
+          <Pill icon="🔥" label="Stress" value={`${stats.stress}`} danger={stats.stress > 60} bar={stats.stress} />
           <button
             onClick={onPause}
             className="pointer-events-auto px-2.5 py-1.5 rounded-xl bg-black/45 border border-white/10 hover:bg-white/15 active:scale-95 text-sm transition backdrop-blur-sm"

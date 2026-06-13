@@ -5,58 +5,40 @@ interface Props {
   progress: Progress;
   onStart: () => void;
   onUpgrades: () => void;
+  onSettings: () => void;
 }
 
-export default function StartScreen({ progress, onStart, onUpgrades }: Props) {
+export default function StartScreen({ progress, onStart, onUpgrades, onSettings }: Props) {
   const continuing = progress.level > 1;
   return (
-    <div className="absolute inset-0 z-40 flex items-center justify-center p-4 bg-gradient-to-b from-[#05060f] via-[#080d20] to-[#0a1430] overflow-y-auto">
-      <motion.div
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-md w-full text-center my-auto"
-      >
-        <div className="text-6xl mb-2">🚀</div>
-        <h1 className="text-5xl font-black mb-1 bg-gradient-to-r from-cyan-400 via-sky-400 to-emerald-400 bg-clip-text text-transparent">
+    <div className="absolute inset-0 z-40 flex items-center justify-center p-4 bg-gradient-to-b from-[#05060f] via-[#080d20] to-[#0a1430]">
+      <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} className="max-w-sm w-full text-center">
+        <div className="text-6xl mb-3">🚀</div>
+        <h1 className="text-5xl font-black mb-2 bg-gradient-to-r from-cyan-400 via-sky-400 to-emerald-400 bg-clip-text text-transparent">
           Startup Runner
         </h1>
-        <p className="text-white/70 mb-5 text-sm">
-          Steer through a startup's life — one decision lane at a time. Survive five levels, earn cash,
-          buy upgrades, and come back stronger. Build it real or fake it till you break it.
-        </p>
+        <p className="text-white/65 mb-7 text-base">Pick startup decisions, grow your stats, survive the run.</p>
 
         <button
           onClick={onStart}
-          className="w-full px-8 py-3.5 rounded-2xl bg-gradient-to-r from-cyan-500 to-emerald-500 font-bold text-lg shadow-lg shadow-cyan-500/20 hover:scale-[1.02] active:scale-95 transition-transform"
+          className="w-full px-8 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-emerald-500 font-black text-xl shadow-lg shadow-cyan-500/25 hover:scale-[1.02] active:scale-95 transition-transform"
         >
           {continuing ? `Continue · Level ${progress.level}` : 'Start Run'}
         </button>
 
-        <button
-          onClick={onUpgrades}
-          className="w-full mt-2.5 px-8 py-3 rounded-2xl bg-white/8 border border-white/10 font-semibold hover:bg-white/12 active:scale-95 transition"
-        >
-          🛠️ Upgrades <span className="text-emerald-300 font-bold">€{progress.wallet.toLocaleString()}</span> available
-        </button>
-
-        <div className="text-left bg-white/5 rounded-2xl p-4 mt-5 text-sm space-y-1.5 border border-white/5">
-          <div className="font-semibold text-cyan-300 mb-1">Controls</div>
-          <div>⌨️ Steer with <b>A / D</b> or <b>← / →</b></div>
-          <div>📱 Swipe or tap left / right on mobile</div>
-          <div>⏸ Press <b>Esc</b> (or the pause button) anytime</div>
-          <div className="pt-1 text-white/60">
-            🟢 solid · 🟡 risky · 🔴 bad · 🟣 neutral — and ⚠ marks a gamble.
-          </div>
+        <div className="flex gap-2 mt-3">
+          <button onClick={onUpgrades} className="flex-1 px-4 py-2.5 rounded-xl bg-white/8 border border-white/10 font-semibold hover:bg-white/12 active:scale-95 transition">
+            🛠️ Upgrades
+          </button>
+          <button onClick={onSettings} className="flex-1 px-4 py-2.5 rounded-xl bg-white/8 border border-white/10 font-semibold hover:bg-white/12 active:scale-95 transition">
+            ⚙️ Settings
+          </button>
         </div>
 
-        <div className="flex justify-center gap-4 mt-4 text-xs text-white/50">
-          {progress.bestEnding && (
-            <span>
-              Best: {progress.bestEnding.emoji} <b className="text-white/80">{progress.bestEnding.title}</b>
-            </span>
-          )}
-          {progress.totalRuns > 0 && <span>Runs: {progress.totalRuns}</span>}
-        </div>
+        {progress.wallet > 0 && <div className="mt-3 text-sm text-emerald-300/90 font-semibold">€{progress.wallet.toLocaleString()} to spend on upgrades</div>}
+        {progress.bestEnding && (
+          <div className="mt-1 text-xs text-white/45">Best: {progress.bestEnding.emoji} {progress.bestEnding.title}</div>
+        )}
       </motion.div>
     </div>
   );

@@ -25,15 +25,20 @@ export interface StatDelta {
  * the player's upgrade-derived modifiers so it can branch (e.g. paid ads check
  * product + marketing level). Returns the raw deltas to apply.
  */
+/** Visual identity of a portal. Drives 3D shape + color (no text needed). */
+export type PortalCategory = 'strategic' | 'growth' | 'danger' | 'finance' | 'product' | 'marketing' | 'legal';
+
 export interface GateChoice {
   label: string;
   icon: string;
   tone: GateTone;
-  /** One-line explanation shown in the focused preview panel. */
+  /** Portal visual category (auto-derived from effects if not set). */
+  category: PortalCategory;
+  /** One-line explanation shown in the focused decision panel. */
   detail?: string;
-  /** Approximate effect chips (max ~2 shown on the gate). */
+  /** Approximate effect chips shown in the decision panel. */
   preview?: StatDelta[];
-  /** Marks an explicitly risky choice for the risk indicator. */
+  /** Marks an explicitly risky choice for the risk tag. */
   risk?: boolean;
   effect: (s: Stats, m: Modifiers) => StatDelta[];
 }
