@@ -1,6 +1,7 @@
-import type { Stats, StatDelta, StatKey } from './types';
+import type { Stats, StatDelta, StatKey, Modifiers, LevelScaling } from './types';
 
-export const INITIAL_STATS: Stats = {
+/** Base starting stats before the Starting Cash upgrade is applied. */
+export const BASE_STATS: Stats = {
   cash: 1000,
   skill: 10,
   product: 0,
@@ -11,9 +12,14 @@ export const INITIAL_STATS: Stats = {
   team: 1,
 };
 
+/** Build the run's opening stats, including upgrade bonuses. */
+export function initialStats(m: Modifiers): Stats {
+  return { ...BASE_STATS, cash: BASE_STATS.cash + m.startCashBonus };
+}
+
 /** Min/max clamps per stat. users/cash are loosely bounded. */
 const CLAMP: Record<StatKey, [number, number]> = {
-  cash: [-5000, 9_999_999],
+  cash: [-9000, 9_999_999],
   skill: [0, 100],
   product: [0, 100],
   users: [0, 9_999_999],
@@ -32,13 +38,49 @@ export function clampStats(s: Stats): Stats {
   return out;
 }
 
-/** Apply a list of deltas to stats and return clamped result. */
-export function applyDeltas(s: Stats, deltas: StatDelta[]): Stats {
+const NO_SCALING: LevelScaling = { userUpside: 1, userDownside: 1, legalScale: 1, stressScale: 1 };
+
+/**
+ * Apply passive upgrade modifiers + level scaling to a single delta.
+ * Contextual modifiers (marketing/team) are handled inside the gate effects
+ * themselves, so they are intentionally NOT re-applied here.
+ */
+function transformDelta(dlt: StatDelta, m: Modifiers, sc: LevelScaling): StatDelta {
+  let a = dlt.amount;
+  switch (dlt.stat) {
+    case 'product':
+      if (a > 0) a *= m.codingMult;
+      break;
+    case 'stress':
+      if (a > 0) a *= (1 - m.stressReduce) * sc.stressScale;
+      break;
+    case 'legalRisk':
+      if (a > 0) a *= (1 - m.legalReduce) * sc.legalScale;
+      break;
+    case 'reputation':
+      if (a < 0) a *= 1 - m.repShield;
+      break;
+    case 'users':
+      if (a > 0) a *= sc.userUpside;
+      else a *= (1 - m.serverReduce) * sc.userDownside;
+      break;
+  }
+  return { stat: dlt.stat, amount: Math.round(a) };
+}
+
+/** Apply a list of deltas (with modifiers + scaling) and return clamped result. */
+export function applyDeltas(
+  s: Stats,
+  deltas: StatDelta[],
+  m: Modifiers,
+  sc: LevelScaling = NO_SCALING
+): { next: Stats; applied: StatDelta[] } {
+  const applied = deltas.map((dlt) => transformDelta(dlt, m, sc)).filter((dlt) => dlt.amount !== 0);
   const out = { ...s };
-  deltas.forEach((d) => {
-    out[d.stat] += d.amount;
+  applied.forEach((dlt) => {
+    out[dlt.stat] += dlt.amount;
   });
-  return clampStats(out);
+  return { next: clampStats(out), applied };
 }
 
 export const STAT_META: Record<StatKey, { label: string; icon: string; suffix?: string; prefix?: string }> = {
@@ -54,13 +96,12 @@ export const STAT_META: Record<StatKey, { label: string; icon: string; suffix?: 
 
 export function formatStat(stat: StatKey, value: number): string {
   const m = STAT_META[stat];
-  const v = m.prefix === '€' ? value.toLocaleString('en-US') : value.toLocaleString('en-US');
-  return `${m.prefix ?? ''}${v}${m.suffix ?? ''}`;
+  return `${m.prefix ?? ''}${value.toLocaleString('en-US')}${m.suffix ?? ''}`;
 }
 
-export function formatDelta(d: StatDelta): string {
-  const m = STAT_META[d.stat];
-  const sign = d.amount > 0 ? '+' : '';
-  const num = m.prefix === '€' ? `€${Math.abs(d.amount).toLocaleString('en-US')}` : `${Math.abs(d.amount)}`;
-  return `${sign}${d.amount < 0 ? '-' : ''}${num} ${m.label}`;
+export function formatDelta(dlt: StatDelta): string {
+  const m = STAT_META[dlt.stat];
+  const sign = dlt.amount > 0 ? '+' : '-';
+  const num = m.prefix === '€' ? `€${Math.abs(dlt.amount).toLocaleString('en-US')}` : `${Math.abs(dlt.amount)}`;
+  return `${sign}${num} ${m.label}`;
 }

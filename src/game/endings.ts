@@ -7,63 +7,63 @@ import type { Ending, Stats } from './types';
  */
 export const ENDINGS: Ending[] = [
   {
-    id: 'unicorn',
-    title: 'Unicorn Founder',
+    id: 'rocketship',
+    title: 'Funded Rocketship',
     emoji: '🦄',
-    blurb: 'High users, strong product, sterling reputation, money in the bank. You actually did it. Suspicious.',
+    blurb: 'Strong product, loyal crowd, sterling reputation, money in the bank. Investors are calling you now.',
     score: (s) =>
-      s.users > 350 && s.reputation > 60 && s.product > 60 && s.cash > 1000 && s.legalRisk < 40
+      s.users > 300 && s.reputation > 60 && s.product > 60 && s.cash > 1500 && s.legalRisk < 40
         ? 1000 + s.users + s.reputation + s.product
         : -Infinity,
   },
   {
-    id: 'tax-speedrun',
-    title: 'Tax Problem Speedrun',
+    id: 'legal-disaster',
+    title: 'Legal Disaster',
     emoji: '⚖️',
     blurb: 'You optimized for "ignore the law." The law did not ignore you. Any%, no assets.',
     score: (s) => (s.legalRisk > 60 ? 900 + s.legalRisk : -Infinity),
   },
   {
-    id: 'broke-dreamer',
-    title: 'Broke Dreamer',
-    emoji: '🥲',
-    blurb: 'Negative bank account, nobody using the thing. The dream was real. The runway was not.',
-    score: (s) => (s.cash < 0 && s.users < 100 ? 850 - s.cash : -Infinity),
-  },
-  {
-    id: 'burned-out',
-    title: 'Burned Out Founder',
+    id: 'burnout-crash',
+    title: 'Burnout Crash',
     emoji: '😵',
     blurb: 'Stress maxed, traction did not. You gave everything and the tank hit empty.',
-    score: (s) => (s.stress > 70 && (s.product < 55 || s.users < 250) ? 800 + s.stress : -Infinity),
+    score: (s) => (s.stress > 75 && (s.product < 55 || s.users < 250) ? 850 + s.stress : -Infinity),
   },
   {
-    id: 'viral-broken',
-    title: 'Viral But Broken',
+    id: 'viral-mess',
+    title: 'Viral Mess',
     emoji: '🔥',
     blurb: 'Tons of users on a product held together with tape. Reputation in freefall. Fun while it lasted.',
-    score: (s) => (s.users > 300 && s.product < 45 && s.reputation < 45 ? 780 + s.users / 2 : -Infinity),
+    score: (s) => (s.users > 300 && s.product < 45 && s.reputation < 50 ? 800 + s.users / 2 : -Infinity),
   },
   {
     id: 'fake-guru',
-    title: 'Fake Guru',
+    title: 'Fake Guru Arc',
     emoji: '🕶️',
     blurb: 'Big "audience," tiny product, allergic to substance. You sell courses now. Of course you do.',
-    score: (s) => (s.product < 40 && s.users > 200 && s.reputation < 50 ? 760 + s.users / 3 : -Infinity),
+    score: (s) => (s.product < 40 && s.users > 180 && s.reputation < 55 ? 760 + s.users / 3 : -Infinity),
   },
   {
-    id: 'agency',
-    title: 'Solid Agency Owner',
+    id: 'broke-skilled',
+    title: 'Broke But Skilled',
+    emoji: '🥲',
+    blurb: 'Empty bank account, full brain. You learned a ton. Next run hits different.',
+    score: (s) => (s.cash < 300 && s.skill > 45 ? 740 + s.skill : -Infinity),
+  },
+  {
+    id: 'boring-business',
+    title: 'Profitable Boring Business',
     emoji: '🏢',
-    blurb: 'Real skills, a real team, a real reputation. Not a rocket ship, but a business that pays.',
-    score: (s) => (s.skill > 50 && s.team > 2 && s.reputation > 55 ? 720 + s.skill + s.team * 10 : -Infinity),
+    blurb: 'No rocket ship. Just real skills, a real team, and a business that quietly pays the bills.',
+    score: (s) => (s.cash > 1500 && s.reputation > 50 && s.stress < 70 ? 720 + s.cash / 100 : -Infinity),
   },
   {
-    id: 'indie',
-    title: 'Profitable Indie Founder',
+    id: 'indie-win',
+    title: 'Clean Indie Win',
     emoji: '🌱',
-    blurb: 'Healthy cash, good product, sane stress, a loyal-if-small crowd. Quietly winning.',
-    score: (s) => (s.cash > 800 && s.product > 50 && s.stress < 70 ? 700 + s.cash / 100 + s.product : -Infinity),
+    blurb: 'Good product, sane stress, a loyal-if-small crowd, money to spare. Quietly winning.',
+    score: (s) => (s.product > 50 && s.stress < 65 && s.users > 120 ? 700 + s.product + s.users / 4 : -Infinity),
   },
 ];
 
