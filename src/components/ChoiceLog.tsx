@@ -1,3 +1,4 @@
+import { AnimatePresence, motion } from 'framer-motion';
 import { TONE_COLOR } from './constants';
 import type { GateTone } from '../game/types';
 
@@ -6,21 +7,26 @@ export interface LogEntry {
   tone: GateTone;
 }
 
-/** Shows the last 3 choices in the bottom-left corner. */
+/** A single small "last choice" toast that fades — no wall of logs during play. */
 export default function ChoiceLog({ entries }: { entries: LogEntry[] }) {
-  const last = entries.slice(-3);
-  if (last.length === 0) return null;
+  const last = entries[entries.length - 1];
   return (
-    <div className="absolute bottom-3 left-3 flex flex-col gap-1 pointer-events-none">
-      {last.map((e, i) => (
-        <div
-          key={i}
-          className="text-xs px-2 py-1 rounded-md bg-black/50 border-l-2"
-          style={{ borderColor: TONE_COLOR[e.tone], opacity: 0.5 + (i / last.length) * 0.5 }}
-        >
-          {e.label}
-        </div>
-      ))}
+    <div className="absolute top-16 sm:top-14 left-0 right-0 flex justify-center pointer-events-none z-10">
+      <AnimatePresence mode="wait">
+        {last && (
+          <motion.div
+            key={entries.length}
+            initial={{ opacity: 0, y: -8, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+            className="px-3 py-1 rounded-full text-xs font-semibold bg-black/55 border backdrop-blur-sm"
+            style={{ borderColor: TONE_COLOR[last.tone], color: '#fff' }}
+          >
+            {last.label}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -169,7 +169,11 @@ export const DEFAULT_SETTINGS: GameSettings = {
   sfx: true,
   reducedMotion: false,
   showPreviews: true,
+  quality: 'medium',
 };
+
+/** Upgrade ids surfaced first on the upgrade screen. */
+export const RECOMMENDED_UPGRADES: UpgradeId[] = ['startingCash', 'codingSkill', 'marketingBrain'];
 
 export function defaultProgress(): Progress {
   return {

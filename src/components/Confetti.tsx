@@ -6,7 +6,7 @@ const COLORS = ['#22d3ee', '#34d399', '#a78bfa', '#fbbf24', '#f472b6'];
 export default function Confetti({ active }: { active: boolean }) {
   const pieces = useMemo(
     () =>
-      Array.from({ length: 70 }).map((_, i) => ({
+      Array.from({ length: 48 }).map((_, i) => ({
         left: Math.random() * 100,
         delay: Math.random() * 0.5,
         dur: 1.6 + Math.random() * 1.4,

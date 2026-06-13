@@ -29,9 +29,9 @@ export interface GateChoice {
   label: string;
   icon: string;
   tone: GateTone;
-  /** Short flavor hint. */
-  hint?: string;
-  /** Approximate effect shown as a preview on the gate. */
+  /** One-line explanation shown in the focused preview panel. */
+  detail?: string;
+  /** Approximate effect chips (max ~2 shown on the gate). */
   preview?: StatDelta[];
   /** Marks an explicitly risky choice for the risk indicator. */
   risk?: boolean;
@@ -127,11 +127,14 @@ export interface RunReward {
   cashEarned: number;
 }
 
+export type GraphicsQuality = 'low' | 'medium' | 'high';
+
 export interface GameSettings {
   music: boolean;
   sfx: boolean;
   reducedMotion: boolean;
   showPreviews: boolean;
+  quality: GraphicsQuality;
 }
 
 export interface BestEnding {

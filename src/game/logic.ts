@@ -99,6 +99,17 @@ export function formatStat(stat: StatKey, value: number): string {
   return `${m.prefix ?? ''}${value.toLocaleString('en-US')}${m.suffix ?? ''}`;
 }
 
+/** Is an increase in this stat good for the player? */
+export function deltaIsGood(dlt: StatDelta): boolean {
+  const bad = dlt.stat === 'stress' || dlt.stat === 'legalRisk';
+  return bad ? dlt.amount < 0 : dlt.amount > 0;
+}
+
+/** Short chip like "+Users" / "-Cash" for gates. */
+export function chipLabel(dlt: StatDelta): string {
+  return `${dlt.amount >= 0 ? '+' : '-'}${STAT_META[dlt.stat].label}`;
+}
+
 export function formatDelta(dlt: StatDelta): string {
   const m = STAT_META[dlt.stat];
   const sign = dlt.amount > 0 ? '+' : '-';
